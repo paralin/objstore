@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/pbobject"
+	"github.com/aperturerobotics/storageref"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -106,17 +107,32 @@ func (o *ObjectStore) StoreObject(
 	ctx context.Context,
 	obj pbobject.Object,
 	encConf pbobject.EncryptionConfig,
-) (string, []byte, error) {
+) (*storageref.StorageRef, []byte, error) {
 	objWrapper, objData, err := pbobject.NewObjectWrapper(obj, encConf)
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 
 	objBlob, err := proto.Marshal(objWrapper)
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
+	}
+
+	digest, err := o.LocalStore.DigestData(objData)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	storageRef, err := o.StoreRemote(ctx, objBlob)
-	return storageRef, objData, err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &storageref.StorageRef{
+		StorageType:  storageref.StorageType_StorageType_IPFS,
+		ObjectDigest: digest,
+		Ipfs: &storageref.StorageRefIPFS{
+			ObjectHash: storageRef,
+		},
+	}, objData, nil
 }
