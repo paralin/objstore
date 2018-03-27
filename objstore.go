@@ -37,10 +37,11 @@ type LocalStore interface {
 // RemoteStore stores blobs in remote storage.
 type RemoteStore interface {
 	// FetchRemote returns a blob from blob storage given the storage reference string.
-	FetchRemote(ctx context.Context, storageRef string) ([]byte, error)
+	FetchRemote(ctx context.Context, storageRef string, isBlock bool) ([]byte, error)
 
 	// StoreRemote stores a blob in blob storage and returns the storage reference string.
-	StoreRemote(ctx context.Context, blob []byte) (string, error)
+	// Additionally, the boolean return indicates if the object was stored as a single block.
+	StoreRemote(ctx context.Context, blob []byte) (string, bool, error)
 }
 
 // ObjectStore overlays a remote encrypted-at-rest blob store over the local unencrypted hash-based storage.
@@ -66,6 +67,7 @@ func (o *ObjectStore) GetOrFetch(
 	ctx context.Context,
 	digest []byte,
 	storageRef string,
+	isBlock bool,
 	obj pbobject.Object,
 	encConf pbobject.EncryptionConfig,
 ) error {
@@ -79,7 +81,7 @@ func (o *ObjectStore) GetOrFetch(
 	}
 
 	// Call out to the remote database as the next layer of caches.
-	dat, err := o.FetchRemote(ctx, storageRef)
+	dat, err := o.FetchRemote(ctx, storageRef, isBlock)
 	if err != nil {
 		return err
 	}
@@ -102,7 +104,7 @@ func (o *ObjectStore) GetOrFetch(
 }
 
 // StoreObject digests, seals, encrypts, and stores a object locally and remotely.
-// Returns storageRef, digest, and error.
+// Returns storageRef, object encoded data, and error.
 func (o *ObjectStore) StoreObject(
 	ctx context.Context,
 	obj pbobject.Object,
@@ -123,16 +125,22 @@ func (o *ObjectStore) StoreObject(
 		return nil, nil, err
 	}
 
-	storageRef, err := o.StoreRemote(ctx, objBlob)
+	storageRef, isBlock, err := o.StoreRemote(ctx, objBlob)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	refType := storageref.IPFSRefType_IPFSRefType_OBJECT
+	if isBlock {
+		refType = storageref.IPFSRefType_IPFSRefType_BLOCK
 	}
 
 	return &storageref.StorageRef{
 		StorageType:  storageref.StorageType_StorageType_IPFS,
 		ObjectDigest: digest,
 		Ipfs: &storageref.StorageRefIPFS{
-			ObjectHash: storageRef,
+			Reference:   storageRef,
+			IpfsRefType: refType,
 		},
 	}, objData, nil
 }

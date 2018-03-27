@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-// Db is an implementation of the Inca database.
+// Db is an implementation of a key-value database.
 type Db interface {
 	// Get retrieves an object from the database.
 	// Not found should return nil, nil
