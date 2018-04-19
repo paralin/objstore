@@ -70,3 +70,21 @@ func (d *BadgerDB) List(ctx context.Context, prefix []byte) ([][]byte, error) {
 	}
 	return vals, nil
 }
+
+// Delete deletes a set of keys from the db.
+func (d *BadgerDB) Delete(ctx context.Context, keys ...[]byte) error {
+	return d.DB.Update(func(txn *badger.Txn) error {
+		for _, key := range keys {
+			_, err := txn.Get(key)
+			if err != nil {
+				if err == badger.ErrKeyNotFound {
+					continue
+				}
+
+				return err
+			}
+
+			txn.Delete(key)
+		}
+	})
+}

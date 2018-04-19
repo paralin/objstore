@@ -13,4 +13,7 @@ type Db interface {
 	Set(ctx context.Context, key []byte, val []byte) error
 	// List returns a list of keys with the specified prefix.
 	List(ctx context.Context, prefix []byte) ([][]byte, error)
+	// Delete clears a set of keys from the db.
+	// Not found should not return an error.
+	Delete(ctx context.Context, keys ...[]byte) error
 }

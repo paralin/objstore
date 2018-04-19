@@ -29,8 +29,14 @@ func (d *Prefixer) Set(ctx context.Context, key []byte, val []byte) error {
 	return d.db.Set(ctx, d.applyPrefix(key), val)
 }
 
+// List lists keys with a prefix.
 func (d *Prefixer) List(ctx context.Context, prefix []byte) ([][]byte, error) {
 	return d.db.List(ctx, d.applyPrefix(prefix))
+}
+
+// Delete deletes a set of keys.
+func (d *Prefixer) Delete(ctx context.Context, keys ...[]byte) error {
+	return d.db.Delete(ctx, keys...)
 }
 
 // WithPrefix adds a prefix to a database.

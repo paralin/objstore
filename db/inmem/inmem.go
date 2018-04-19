@@ -3,33 +3,27 @@ package inmem
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
-	"sync"
 
+	"github.com/Workiva/go-datastructures/trie/ctrie"
 	"github.com/aperturerobotics/objstore/db"
 )
 
 // InmemDb is a in-memory database.
 type InmemDb struct {
-	m  sync.Map // map[[sha1.Size]byte][]byte // map of values
-	mk sync.Map // map[[sha1.Size]byte][]byte // map of keys
+	ct *ctrie.Ctrie
 }
 
 // NewInmemDb returns a in-memory database.
 func NewInmemDb() db.Db {
-	return &InmemDb{}
-}
-
-// hashKey hashes a key.
-func (m *InmemDb) hashKey(key []byte) [sha1.Size]byte {
-	return sha1.Sum(key)
+	return &InmemDb{
+		ct: ctrie.New(nil),
+	}
 }
 
 // Get retrieves an object from the database.
 // Not found should return nil, nil
 func (m *InmemDb) Get(ctx context.Context, key []byte) ([]byte, error) {
-	k := m.hashKey(key)
-	obj, ok := m.m.Load(k)
+	obj, ok := m.ct.Lookup(key)
 	if !ok {
 		return nil, nil
 	}
@@ -39,28 +33,34 @@ func (m *InmemDb) Get(ctx context.Context, key []byte) ([]byte, error) {
 
 // Set sets an object in the database.
 func (m *InmemDb) Set(ctx context.Context, key []byte, val []byte) error {
-	k := m.hashKey(key)
-	m.m.Store(k, val)
-	m.mk.Store(k, key)
+	m.ct.Insert(key, val)
 	return nil
 }
 
 // List returns a list of keys with the specified prefix.
 func (m *InmemDb) List(ctx context.Context, prefix []byte) ([][]byte, error) {
+	entryCh := m.ct.Iterator(ctx.Done())
 	var ks [][]byte
-	m.m.Range(func(key interface{}, value interface{}) bool {
-		keyHash := key.([sha1.Size]byte)
-		key, ok := m.mk.Load(keyHash)
-		if !ok {
-			return true
+	for entry := range entryCh {
+		key := entry.Key
+		if len(prefix) == 0 || bytes.HasPrefix(key, prefix) {
+			ks = append(ks, key)
 		}
+	}
 
-		kb := key.([]byte)
-		if len(prefix) == 0 || bytes.HasPrefix(kb, prefix) {
-			ks = append(ks, kb)
-		}
-		return true
-	})
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		return ks, nil
+	}
+}
 
-	return ks, nil
+// Delete deletes a set of keys from the database.
+func (m *InmemDb) Delete(ctx context.Context, keys ...[]byte) error {
+	for _, key := range keys {
+		m.ct.Remove(key)
+	}
+
+	return nil
 }

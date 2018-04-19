@@ -5,17 +5,19 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/inca"
-	"github.com/aperturerobotics/inca-go/db"
 	"github.com/aperturerobotics/objstore"
+	"github.com/aperturerobotics/objstore/db/inmem"
 	"github.com/aperturerobotics/objstore/ipfs"
 	"github.com/aperturerobotics/objstore/localdb"
 	"github.com/aperturerobotics/pbobject"
+	"github.com/aperturerobotics/storageref"
 	"github.com/aperturerobotics/timestamp"
 
 	api "github.com/ipfs/go-ipfs-api"
 )
 
 // TestGetOrFetch tests getting or fetching an object from IPFS storage.
+// TODO: refactor to possibly use storageref as an argument to GetOrFetch?
 func TestGetOrFetch(t *testing.T) {
 	ctx := context.Background()
 	sh := api.NewLocalShell()
@@ -23,7 +25,7 @@ func TestGetOrFetch(t *testing.T) {
 		t.Fatal("unable to connect to local ipfs")
 	}
 
-	localStore := localdb.NewLocalDb(db.NewInmemDb())
+	localStore := localdb.NewLocalDb(inmem.NewInmemDb())
 	remoteStore := ipfs.NewRemoteStore(sh)
 	objStore := objstore.NewObjectStore(ctx, localStore, remoteStore)
 
@@ -40,7 +42,7 @@ func TestGetOrFetch(t *testing.T) {
 	}
 
 	t.Logf("storage reference: %s", storageRef)
-	defer sh.Unpin(storageRef)
+	defer sh.Unpin(storageRef.GetIpfs().GetReference())
 
 	digest, err := localStore.DigestData(objData)
 	if err != nil {
@@ -48,7 +50,14 @@ func TestGetOrFetch(t *testing.T) {
 	}
 
 	outp := &inca.Genesis{}
-	if err := objStore.GetOrFetch(ctx, digest, storageRef, outp, encConf); err != nil {
+	if err := objStore.GetOrFetch(
+		ctx,
+		digest,
+		storageRef.GetIpfs().GetReference(),
+		storageRef.GetIpfs().GetIpfsRefType() == storageref.IPFSRefType_IPFSRefType_BLOCK,
+		outp,
+		encConf,
+	); err != nil {
 		t.Fatal(err.Error())
 	}
 
