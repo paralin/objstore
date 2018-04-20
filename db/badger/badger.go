@@ -84,7 +84,11 @@ func (d *BadgerDB) Delete(ctx context.Context, keys ...[]byte) error {
 				return err
 			}
 
-			txn.Delete(key)
+			if err := txn.Delete(key); err != nil {
+				return err
+			}
 		}
+
+		return nil
 	})
 }
