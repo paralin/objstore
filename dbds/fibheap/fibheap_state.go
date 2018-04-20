@@ -69,6 +69,10 @@ func (h *FibbonaciHeap) getEntry(ctx context.Context, id string, alloc bool) (*E
 		}
 	}
 
+	if h.entryCache == nil {
+		h.entryCache = make(map[string]*Entry)
+	}
+
 	h.entryCache[id] = entry
 	return entry, nil
 }

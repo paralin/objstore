@@ -173,10 +173,83 @@ func (h *FibbonaciHeap) Delete(ctx context.Context, key string) (rerr error) {
 	return h.dequeueKeyByID(ctx, key, entry)
 }
 
-// Merge returns a new heap that includes the elements of both heaps.
-// Destroys the input heaps to produce the result.
-func (h *FibbonaciHeap) Merge(other *FibbonaciHeap) (*FibbonaciHeap, error) {
-	return nil, nil
+// Merge merges b into a, enqueuing any keys that do not exist already.
+// As a consequence of the operation, any elements already existing in A are removed from B.
+// This can be used as a one-time UNIQ operation.
+func (h *FibbonaciHeap) Merge(ctx context.Context, other *FibbonaciHeap) (rerr error) {
+	if h == nil || other == nil {
+		return errors.New("merge: one of the maps was nil")
+	}
+
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+	defer h.flushEntryCache(ctx, &rerr)
+
+	other.mtx.Lock()
+	defer other.mtx.Unlock()
+	defer func() {
+		other.entryCache = nil
+	}()
+
+	resultSize := h.root.Size
+
+	// unfortunately, have to remove any keys in other that exist in h.
+	// this is to avoid collisions
+	otherKeys, err := other.keyDb.List(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	// remove any keys that would collide
+	for _, key := range otherKeys {
+		id := string(key[1:])
+		otherEntry, err := other.getEntry(ctx, id, false)
+		if err != nil {
+			return err
+		}
+
+		if otherEntry == nil {
+			return errors.Errorf("cannot find entry: %s", id)
+		}
+
+		hv, err := h.keyDb.Get(ctx, key)
+		if err != nil {
+			return err
+		}
+
+		if hv != nil {
+			if err := other.dequeueKeyByID(ctx, id, otherEntry); err != nil {
+				return err
+			}
+		} else {
+			h.entryCache[id] = otherEntry
+			resultSize++
+		}
+	}
+
+	heapMin, err := h.getEntry(ctx, h.root.Min, false)
+	if err != nil {
+		return err
+	}
+
+	otherMin, err := h.getEntry(ctx, other.root.Min, false)
+	if err != nil {
+		return err
+	}
+
+	resultMinKey, resultMinEntry, err := h.mergeLists(
+		ctx,
+		heapMin, otherMin,
+		h.root.Min, other.root.Min,
+	)
+	if err != nil {
+		return err
+	}
+
+	h.root.Min = resultMinKey
+	h.root.Size = resultSize
+	h.root.MinPriority = resultMinEntry.GetPriority()
+	return h.writeState(ctx)
 }
 
 // dequeueMinEntry dequeues the min entry and returns it.

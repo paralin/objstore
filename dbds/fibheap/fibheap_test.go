@@ -312,38 +312,27 @@ func TestFibHeap_Delete_EmptyHeap(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-/* TODO
 func TestMerge(t *testing.T) {
-	heap1 := NewFibbonaciHeap(context.Background(), inmem.NewInmemDb())
+	ctx := context.Background()
+	heap1, _ := NewFibbonaciHeap(ctx, inmem.NewInmemDb())
 	for i := 0; i < len(NumberSequence3); i++ {
-		heap1.Enqueue(NumberSequence3[i])
+		heap1.Enqueue(ctx, strconv.Itoa(i)+"_1", NumberSequence3[i])
 	}
 
-	heap2 := NewFibbonaciHeap(context.Background(), inmem.NewInmemDb())
+	heap2, _ := NewFibbonaciHeap(ctx, inmem.NewInmemDb())
 	for i := 0; i < len(NumberSequence4); i++ {
-		heap1.Enqueue(NumberSequence4[i])
+		heap2.Enqueue(ctx, strconv.Itoa(i)+"_2", NumberSequence4[i])
 	}
 
-	heap, err := heap1.Merge(&heap2)
+	err := heap1.Merge(ctx, heap2)
 	require.NoError(t, err)
 
-	var min *Entry
 	for i := 0; i < len(NumberSequenceMerged3And4Sorted); i++ {
-		min, err = heap.DequeueMin()
+		_, pmin, err := heap1.DequeueMin(ctx)
 		require.NoError(t, err)
-		assert.Equal(t, NumberSequenceMerged3And4Sorted[i], minp)
+		assert.Equal(t, NumberSequenceMerged3And4Sorted[i], pmin)
 	}
 }
-
-func TestFibHeap_Merge_NilHeap(t *testing.T) {
-	var heap FloatingFibonacciHeap
-	heap = NewFibbonaciHeap(context.Background(), inmem.NewInmemDb())
-	newHeap, err := heap.Merge(nil)
-	assert.IsType(t, NilError(""), err)
-	assert.EqualError(t, err, "One of the heaps to merge is nil. Cannot merge")
-	assert.Equal(t, newHeap, FloatingFibonacciHeap{})
-}
-*/
 
 // ***************
 // BENCHMARK TESTS
@@ -416,16 +405,15 @@ func BenchmarkFibHeap_DecreaseKey(b *testing.B) {
 }
 
 // Runs in O(1) time
-/*
 func BenchmarkFibHeap_Merge(b *testing.B) {
-	heap1 := NewFibbonaciHeap(context.Background(), inmem.NewInmemDb())
-	heap2 := NewFibbonaciHeap(context.Background(), inmem.NewInmemDb())
+	heap1, _ := NewFibbonaciHeap(context.Background(), inmem.NewInmemDb())
+	heap2, _ := NewFibbonaciHeap(context.Background(), inmem.NewInmemDb())
 
+	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
-		heap1.Enqueue(2 * 1E10 * (rand.Float64() - 0.5))
-		heap2.Enqueue(2 * 1E10 * (rand.Float64() - 0.5))
-		_, err := heap1.Merge(&heap2)
+		heap1.Enqueue(ctx, strconv.Itoa(i)+"_1", 2*1E10*(rand.Float64()-0.5))
+		heap2.Enqueue(ctx, strconv.Itoa(i)+"_2", 2*1E10*(rand.Float64()-0.5))
+		err := heap1.Merge(ctx, heap2)
 		assert.NoError(b, err)
 	}
 }
-*/
