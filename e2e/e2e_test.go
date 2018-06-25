@@ -26,8 +26,7 @@ func TestGetOrFetch(t *testing.T) {
 	}
 
 	localStore := localdb.NewLocalDb(inmem.NewInmemDb())
-	remoteStore := ipfs.NewRemoteStore(sh)
-	objStore := objstore.NewObjectStore(ctx, localStore, remoteStore)
+	objStore := objstore.NewObjectStore(ctx, localStore, nil)
 
 	genesisTs := timestamp.Now()
 	genesis := &inca.Genesis{
