@@ -52,7 +52,7 @@ func (r *RemoteStore) FetchRemote(ctx context.Context, storageRef string, isBloc
 func (r *RemoteStore) StoreRemote(ctx context.Context, blob []byte) (string, bool, error) {
 
 	if len(blob) <= MaxBlockSize {
-		ref, err := r.shell.BlockPut(blob)
+		ref, err := r.shell.BlockPut(blob, "raw", "sha2-256", -1)
 		return ref, true, err
 	}
 
