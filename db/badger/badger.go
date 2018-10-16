@@ -30,13 +30,11 @@ func (d *BadgerDB) Get(ctx context.Context, key []byte) ([]byte, error) {
 			return rerr
 		}
 
-		val, err := item.Value()
-		if err != nil {
-			return err
-		}
-
-		objVal = val
-		return nil
+		return item.Value(func(val []byte) error {
+			objVal = make([]byte, len(val))
+			copy(objVal, val)
+			return nil
+		})
 	})
 	return objVal, getErr
 }
