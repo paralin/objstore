@@ -7,8 +7,10 @@ import (
 // Db is an implementation of a key-value database.
 type Db interface {
 	// Get retrieves an object from the database.
-	// Not found should return nil, nil
-	Get(ctx context.Context, key []byte) ([]byte, error)
+	// Not found should return nil, false, nil
+	// Found should return data, true, nil
+	// Error should return nil, false, err
+	Get(ctx context.Context, key []byte) ([]byte, bool, error)
 	// Set sets an object in the database.
 	Set(ctx context.Context, key []byte, val []byte) error
 	// List returns a list of keys with the specified prefix.

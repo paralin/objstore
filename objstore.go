@@ -85,9 +85,6 @@ func (o *ObjectStore) GetOrFetch(
 ) error {
 	// Attempt to cache hit the local database.
 	getErr := o.GetLocal(ctx, digest, obj)
-	if getErr == nil {
-		return nil
-	}
 	if getErr != ErrNotFound || o.RemoteStore == nil {
 		return getErr
 	}
@@ -135,8 +132,15 @@ func (o *ObjectStore) StoreObject(
 		return nil, nil, err
 	}
 
-	digest, err := o.LocalStore.DigestData(objData)
-	if err != nil {
+	/*
+		digest, err := o.LocalStore.DigestData(objData)
+		if err != nil {
+			return nil, nil, err
+		}
+	*/
+
+	var digest []byte
+	if err := o.LocalStore.StoreLocal(ctx, obj, &digest, StoreParams{}); err != nil {
 		return nil, nil, err
 	}
 

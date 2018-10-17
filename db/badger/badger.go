@@ -19,8 +19,9 @@ func NewBadgerDB(db *badger.DB) db.Db {
 
 // Get retrieves an object from the database.
 // Not found should return nil, nil
-func (d *BadgerDB) Get(ctx context.Context, key []byte) ([]byte, error) {
+func (d *BadgerDB) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	var objVal []byte
+	var objFound bool
 	getErr := d.View(func(txn *badger.Txn) error {
 		item, rerr := txn.Get(key)
 		if rerr != nil {
@@ -30,6 +31,7 @@ func (d *BadgerDB) Get(ctx context.Context, key []byte) ([]byte, error) {
 			return rerr
 		}
 
+		objFound = true
 		val, err := item.Value()
 		if err != nil {
 			return err
@@ -38,7 +40,7 @@ func (d *BadgerDB) Get(ctx context.Context, key []byte) ([]byte, error) {
 		objVal = val
 		return nil
 	})
-	return objVal, getErr
+	return objVal, objFound, getErr
 }
 
 // Set sets an object in the database.

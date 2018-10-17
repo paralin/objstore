@@ -115,7 +115,7 @@ func (b *BTree) newNode() *memNode {
 		n = &Node{}
 	}
 
-	var parentIdx int
+	// var parentIdx int
 	var depth int // parent == nil -> depth=0 root
 
 	mn := &memNode{

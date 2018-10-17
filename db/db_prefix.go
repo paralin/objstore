@@ -19,8 +19,7 @@ func (d *Prefixer) applyPrefix(key []byte) []byte {
 }
 
 // Get retrieves an object from the database.
-// Not found should return nil, nil
-func (d *Prefixer) Get(ctx context.Context, key []byte) ([]byte, error) {
+func (d *Prefixer) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	return d.db.Get(ctx, d.applyPrefix(key))
 }
 

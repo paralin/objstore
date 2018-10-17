@@ -14,12 +14,12 @@ var fibKeyPrefix = []byte("/keys")
 // readState reloads the state from the db.
 // if the state does not exist, writes it.
 func (h *FibbonaciHeap) readState(ctx context.Context) error {
-	d, err := h.db.Get(ctx, fibRootKey)
+	d, dOk, err := h.db.Get(ctx, fibRootKey)
 	if err != nil {
 		return err
 	}
 
-	if d == nil {
+	if !dOk {
 		return h.writeState(ctx)
 	}
 
@@ -53,17 +53,17 @@ func (h *FibbonaciHeap) getEntry(ctx context.Context, id string, alloc bool) (*E
 
 	idKey := h.getIDKey(id)
 
-	d, err := h.keyDb.Get(ctx, idKey)
+	d, dOk, err := h.keyDb.Get(ctx, idKey)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(d) == 0 && !alloc {
+	if !dOk && !alloc {
 		return nil, nil
 	}
 
 	entry := &Entry{}
-	if len(d) != 0 {
+	if dOk {
 		if err := proto.Unmarshal(d, entry); err != nil {
 			return nil, err
 		}

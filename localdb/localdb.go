@@ -52,12 +52,12 @@ func (l *LocalDb) DigestData(data []byte) ([]byte, error) {
 // The hash is of the innermost data of the object, unencrypted, without the multihash header.
 // If not found, returns not found error.
 func (l *LocalDb) GetLocal(ctx context.Context, digest []byte, obj pbobject.Object) error {
-	dat, err := l.Db.Get(ctx, l.GetDigestKey(digest))
+	dat, datOk, err := l.Db.Get(ctx, l.GetDigestKey(digest))
 	if err != nil {
 		return err
 	}
 
-	if len(dat) == 0 {
+	if !datOk {
 		return objstore.ErrNotFound
 	}
 
@@ -68,7 +68,12 @@ func (l *LocalDb) GetLocal(ctx context.Context, digest []byte, obj pbobject.Obje
 // hashPtr is a pointer to the expected unencrypted hash of the data. If the target array is nil,
 // the target will be written with the computed hash and not verified before storing.
 // If the target array is not nil, the hash will be checked before storage.
-func (l *LocalDb) StoreLocal(ctx context.Context, object pbobject.Object, hashPtr *[]byte, params objstore.StoreParams) error {
+func (l *LocalDb) StoreLocal(
+	ctx context.Context,
+	object pbobject.Object,
+	hashPtr *[]byte,
+	params objstore.StoreParams,
+) error {
 	var digest []byte
 	if hashPtr != nil {
 		digest = *hashPtr

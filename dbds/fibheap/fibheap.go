@@ -212,12 +212,12 @@ func (h *FibbonaciHeap) Merge(ctx context.Context, other *FibbonaciHeap) (rerr e
 			return errors.Errorf("cannot find entry: %s", id)
 		}
 
-		hv, err := h.keyDb.Get(ctx, key)
+		_, hvOk, err := h.keyDb.Get(ctx, key)
 		if err != nil {
 			return err
 		}
 
-		if hv != nil {
+		if hvOk {
 			if err := other.dequeueKeyByID(ctx, id, otherEntry); err != nil {
 				return err
 			}

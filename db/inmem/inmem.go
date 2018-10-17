@@ -22,13 +22,13 @@ func NewInmemDb() db.Db {
 
 // Get retrieves an object from the database.
 // Not found should return nil, nil
-func (m *InmemDb) Get(ctx context.Context, key []byte) ([]byte, error) {
+func (m *InmemDb) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	obj, ok := m.ct.Lookup(key)
 	if !ok {
-		return nil, nil
+		return nil, false, nil
 	}
 
-	return obj.([]byte), nil
+	return obj.([]byte), true, nil
 }
 
 // Set sets an object in the database.
